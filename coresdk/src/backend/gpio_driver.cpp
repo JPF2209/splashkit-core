@@ -327,31 +327,136 @@ namespace splashkit_lib
         }
     }
 
-    //This function uses a combined buffer now called buf
-    int sk_spi_transfer(int handle, char *buf, int count)
+    int sk_i2c_read_byte(int handle)
     {
-        if(check_pi())
+        // Assuming check_pi() ensures this is running on a Pi and initialized correctly
+        if (check_pi())
         {
-            //If handle is -1, it doesn't exist
-            if (handle == -1)
+            int result = wiringPiI2CRead(handle);
+            if (result < 0)
             {
-                return -1;
+                LOG(ERROR) << "I2C Read Error: " << result;  // Replace with your error handling
             }
-            unsigned char* u_buf = (unsigned char*) buf;
-            int channel = handle_channel[handle];
-            //Checks whether the channel is in the correct range or if it's not 0
-            if (channel >= 0 || channel < 2)
-            {
-                return -1;
-            }
-            int val = wiringPiSPIDataRW(channel, u_buf, count);
-            return val;
+            return result;
         }
         else
         {
             return -1;
         }
-    }	
+    }
+
+    int sk_i2c_write_byte(int handle, int data)
+    {
+        if (check_pi())
+        {
+            int result = wiringPiI2CWrite(handle, data);
+            if (result < 0)
+            {
+                LOG(ERROR) << "I2C Write Error: " << result;  // Replace with your error handling if needed
+            }
+            return result;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+
+    int sk_i2c_read_device(int handle, char *buf, int count)
+    {
+        if (check_pi())
+        {
+            for (int i = 0; i < count; ++i)
+            {
+                int byte = wiringPiI2CRead(handle);
+                if (byte < 0)
+                {
+                    LOG(ERROR) << "I2C Read Error at byte " << i << ": " << byte;
+                    return -1;  // Stop on first error
+                }
+                buf[i] = static_cast<char>(byte);
+            }
+            return count;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+
+    void sk_i2c_write_device(int handle, char *buf, int count)
+    {
+        if (check_pi())
+        {
+            for (int i = 0; i < count; ++i)
+            {
+                int result = wiringPiI2CWrite(handle, static_cast<int>(buf[i]));
+                if (result < 0)
+                {
+                    LOG(ERROR) << "I2C Write Error at byte " << i << ": " << result;
+                    return;  // Stop on first error
+                }
+            }
+        }
+    }
+
+    int sk_i2c_read_byte_data(int handle, int reg)
+    {
+        if (check_pi())
+        {
+            int result = wiringPiI2CReadReg8(handle, reg);
+            if (result < 0)
+            {
+                LOG(ERROR) << "I2C ReadReg Error (reg " << reg << "): " << result;
+            }
+            return result;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+
+    void sk_i2c_write_byte_data(int handle, int reg, int data)
+    {
+        if (check_pi())
+        {
+            int result = wiringPiI2CWriteReg8(handle, reg, data);
+            if (result < 0)
+            {
+                LOG(ERROR) << "I2C WriteReg Error (reg " << reg << ", data " << data << "): " << result;
+            }
+        }
+    }
+
+    int sk_i2c_read_word_data(int handle, int reg)
+    {
+        if (check_pi())
+        {
+            int result = wiringPiI2CReadReg16(handle, reg);
+            if (result < 0)
+            {
+                LOG(ERROR) << "I2C ReadWord Error (reg " << reg << "): " << result;
+            }
+            return result;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+
+    void sk_i2c_write_word_data(int handle, int reg, int data)
+    {
+        if (check_pi())
+        {
+            int result = ::i2c_write_word_data(pi, handle, reg, data);
+            if (result < 0)
+            {
+                LOG(ERROR) << sk_gpio_error_message(result);
+            }
+        }
+    }
 
     #endif
 
