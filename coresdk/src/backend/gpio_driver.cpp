@@ -16,6 +16,9 @@
 #include <wiringPi.h>
 #include <unordered_map>
 #include <wiringPiSPI.h>
+#include <wiringPiI2C.h>
+
+#define LOG(x) std::cerr
 
 #endif
 
@@ -229,7 +232,7 @@ namespace splashkit_lib
                 return;
             }
             // Find out what the clock divisor is using base clock, frequency and range
-            double divisor = static_cast<double>(base_clock) / (frequency * range);
+            double divisor = static_cast<double>(BASE_CLOCK) / (frequency * range);
             int clock_divisor = static_cast<int>(divisor + 0.5);
             //Checks if the new frequency is in a safe limit
             if ((range / clock_divisor) > 38400)
@@ -269,6 +272,87 @@ namespace splashkit_lib
             pwmWrite(pin, dutycycle);
         }
     }
+
+    // Open I2C device
+    int sk_i2c_open(int bus, int address, int flags = 0) {
+        if (check_pi()) {
+            int handle = wiringPiI2CSetup(address);
+            if (handle < 0) {
+                LOG(ERROR) << "Failed to open I2C device at address " << address << "\n";
+            }
+            return handle;
+        }
+        return -1;
+    }
+
+    // Read one byte
+    int sk_i2c_read_byte(int handle) {
+        if (check_pi()) {
+            int result = wiringPiI2CRead(handle);
+            if (result < 0) {
+                LOG(ERROR) << "I2C read byte failed\n";
+            }
+            return result;
+        }
+        return -1;
+    }
+
+    // Write one byte
+    int sk_i2c_write_byte(int handle, int data) {
+        if (check_pi()) {
+            int result = wiringPiI2CWrite(handle, data);
+            if (result < 0) {
+                LOG(ERROR) << "I2C write byte failed\n";
+            }
+            return result;
+        }
+        return -1;
+    }
+
+    // Read from register (8-bit)
+    int sk_i2c_read_byte_data(int handle, int reg) {
+        if (check_pi()) {
+            int result = wiringPiI2CReadReg8(handle, reg);
+            if (result < 0) {
+                LOG(ERROR) << "I2C read byte from reg failed\n";
+            }
+            return result;
+        }
+        return -1;
+    }
+
+    // Write to register (8-bit)
+    void sk_i2c_write_byte_data(int handle, int reg, int data) {
+        if (check_pi()) {
+            int result = wiringPiI2CWriteReg8(handle, reg, data);
+            if (result < 0) {
+                LOG(ERROR) << "I2C write byte to reg failed\n";
+            }
+        }
+    }
+
+    // Read from register (16-bit)
+    int sk_i2c_read_word_data(int handle, int reg) {
+        if (check_pi()) {
+            int result = wiringPiI2CReadReg16(handle, reg);
+            if (result < 0) {
+                LOG(ERROR) << "I2C read word from reg failed\n";
+            }
+            return result;
+        }
+        return -1;
+    }
+
+    // Write to register (16-bit)
+    void sk_i2c_write_word_data(int handle, int reg, int data) {
+        if (check_pi()) {
+            int result = wiringPiI2CWriteReg16(handle, reg, data);
+            if (result < 0) {
+                LOG(ERROR) << "I2C write word to reg failed\n";
+            }
+        }
+    }
+
 
     void sk_gpio_clear_bank_1()
     {
@@ -674,7 +758,7 @@ namespace splashkit_lib
             LOG(ERROR) << sk_gpio_error_message(PI_BAD_DUTYRANGE);
             return;
         }
-        double divisor = static_cast<double>(base_clock) / (frequency * range);
+        double divisor = static_cast<double>(BASE_CLOCK) / (frequency * range);
         int clock_divisor = static_cast<int>(divisor + 0.5);
         int mode = sk_remote_gpio_get_mode(pin);
         //Checks if the mode is pwm
