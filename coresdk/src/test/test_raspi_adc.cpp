@@ -3,6 +3,7 @@
  *� 2024 Aditya Parmar. All Rights Reserved.
  ***********************************************/
 #include <iostream>
+#include "raspi_adc.h"
 #include "raspi_gpio.h"
 #include "input.h"
 

@@ -18,8 +18,6 @@
 #include <wiringPiSPI.h>
 #include <wiringPiI2C.h>
 
-#define LOG(x) std::cerr
-
 #endif
 
 #ifdef _WIN32
@@ -273,87 +271,6 @@ namespace splashkit_lib
         }
     }
 
-    // Open I2C device
-    int sk_i2c_open(int bus, int address, int flags = 0) {
-        if (check_pi()) {
-            int handle = wiringPiI2CSetup(address);
-            if (handle < 0) {
-                LOG(ERROR) << "Failed to open I2C device at address " << address << "\n";
-            }
-            return handle;
-        }
-        return -1;
-    }
-
-    // Read one byte
-    int sk_i2c_read_byte(int handle) {
-        if (check_pi()) {
-            int result = wiringPiI2CRead(handle);
-            if (result < 0) {
-                LOG(ERROR) << "I2C read byte failed\n";
-            }
-            return result;
-        }
-        return -1;
-    }
-
-    // Write one byte
-    int sk_i2c_write_byte(int handle, int data) {
-        if (check_pi()) {
-            int result = wiringPiI2CWrite(handle, data);
-            if (result < 0) {
-                LOG(ERROR) << "I2C write byte failed\n";
-            }
-            return result;
-        }
-        return -1;
-    }
-
-    // Read from register (8-bit)
-    int sk_i2c_read_byte_data(int handle, int reg) {
-        if (check_pi()) {
-            int result = wiringPiI2CReadReg8(handle, reg);
-            if (result < 0) {
-                LOG(ERROR) << "I2C read byte from reg failed\n";
-            }
-            return result;
-        }
-        return -1;
-    }
-
-    // Write to register (8-bit)
-    void sk_i2c_write_byte_data(int handle, int reg, int data) {
-        if (check_pi()) {
-            int result = wiringPiI2CWriteReg8(handle, reg, data);
-            if (result < 0) {
-                LOG(ERROR) << "I2C write byte to reg failed\n";
-            }
-        }
-    }
-
-    // Read from register (16-bit)
-    int sk_i2c_read_word_data(int handle, int reg) {
-        if (check_pi()) {
-            int result = wiringPiI2CReadReg16(handle, reg);
-            if (result < 0) {
-                LOG(ERROR) << "I2C read word from reg failed\n";
-            }
-            return result;
-        }
-        return -1;
-    }
-
-    // Write to register (16-bit)
-    void sk_i2c_write_word_data(int handle, int reg, int data) {
-        if (check_pi()) {
-            int result = wiringPiI2CWriteReg16(handle, reg, data);
-            if (result < 0) {
-                LOG(ERROR) << "I2C write word to reg failed\n";
-            }
-        }
-    }
-
-
     void sk_gpio_clear_bank_1()
     {
         if(check_pi())
@@ -411,6 +328,61 @@ namespace splashkit_lib
         }
     }
 
+    // This function uses a combined buffer now called buf
+    int sk_spi_transfer(int handle, char *buf, int count)
+    {
+        if (check_pi())
+        {
+            // If handle is -1, it doesn't exist
+            if (handle == -1)
+            {
+                return -1;
+            }
+            unsigned char *u_buf = (unsigned char *)buf;
+            int channel = handle_channel[handle];
+            // Checks whether the channel is in the correct range or if it's not 0
+            if (channel >= 0 || channel < 2)
+            {
+                return -1;
+            }
+            int val = wiringPiSPIDataRW(channel, u_buf, count);
+            return val;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+
+    // Open I2C device
+    int sk_i2c_open(int bus, int address, int flags) {
+        if (check_pi()) {
+            int handle = wiringPiI2CSetup(address);
+            if (handle < 0) {
+                LOG(ERROR) << "Failed to open I2C device at address " << address << "\n";
+            }
+            return handle;
+        }
+        return -1;
+    }
+
+    int sk_i2c_close(int handle) {
+        if (check_pi()) {
+            if (handle >= 0) {
+                if (close(handle) == 0) {
+                    return 0; // Success
+                } else {
+                    LOG(ERROR) << "Failed to close I2C handle " << handle;
+                    return -1; // Error in close
+                }
+            } else {
+                LOG(WARNING) << "Invalid I2C handle: " << handle;
+                return -1;
+            }
+        }
+        return -1; // Not running on Pi
+    }
+
     int sk_i2c_read_byte(int handle)
     {
         // Assuming check_pi() ensures this is running on a Pi and initialized correctly
@@ -443,44 +415,6 @@ namespace splashkit_lib
         else
         {
             return -1;
-        }
-    }
-
-    int sk_i2c_read_device(int handle, char *buf, int count)
-    {
-        if (check_pi())
-        {
-            for (int i = 0; i < count; ++i)
-            {
-                int byte = wiringPiI2CRead(handle);
-                if (byte < 0)
-                {
-                    LOG(ERROR) << "I2C Read Error at byte " << i << ": " << byte;
-                    return -1;  // Stop on first error
-                }
-                buf[i] = static_cast<char>(byte);
-            }
-            return count;
-        }
-        else
-        {
-            return -1;
-        }
-    }
-
-    void sk_i2c_write_device(int handle, char *buf, int count)
-    {
-        if (check_pi())
-        {
-            for (int i = 0; i < count; ++i)
-            {
-                int result = wiringPiI2CWrite(handle, static_cast<int>(buf[i]));
-                if (result < 0)
-                {
-                    LOG(ERROR) << "I2C Write Error at byte " << i << ": " << result;
-                    return;  // Stop on first error
-                }
-            }
         }
     }
 
@@ -534,13 +468,14 @@ namespace splashkit_lib
     {
         if (check_pi())
         {
-            int result = ::i2c_write_word_data(pi, handle, reg, data);
+            int result = wiringPiI2CWriteReg16(handle, reg, data);
             if (result < 0)
             {
                 LOG(ERROR) << sk_gpio_error_message(result);
             }
         }
     }
+
 
     #endif
 
@@ -847,11 +782,11 @@ namespace splashkit_lib
                 return "Invalid PWM duty cycle. Duty cycle must be between 0 and the range value (default 255).";
             case PI_BAD_DUTYRANGE:
                 return "Invalid PWM range. Range must be between 25 and 40000.";
-            case PIGIF_ERR_BAD_SEND:
+            case PI_PIGIF_BAD_SEND:
                 return "Failed to send command to remote GPIO daemon (pigpiod).";
-            case PIGIF_ERR_BAD_RECV:
+            case PI_PIGIF_BAD_RECV:
                 return "Failed to receive response from remote GPIO daemon (pigpiod).";
-            case PIGIF_ERR_BAD_CONNECT:
+            case PI_PIGIF_BAD_CONNECT:
                 return "Failed to connect to remote GPIO daemon (pigpiod).";
             default:
                 return "Unknown error code " + std::to_string(error_code);

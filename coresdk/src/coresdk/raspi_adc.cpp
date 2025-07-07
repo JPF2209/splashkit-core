@@ -86,27 +86,21 @@ namespace splashkit_lib
             return adc_device_named(name);
 
         // Initialize WiringPi once
-        if (!wiringPiInitialized)
-        {
-            if (wiringPiSetup() == -1)
-            {
-                LOG(ERROR) << "Failed to initialize WiringPi";
-                return nullptr;
-            }
-            wiringPiInitialized = true;
-        }
+        int val = sk_gpio_init();
 
         adc_device result = new _adc_data();
-        result->id = ADC_PTR;
+        static int next_adc_id = 0;
+        result->id = static_cast<splashkit_lib::pointer_identifier>(next_adc_id++);
+
+
         result->bus = bus;
         result->address = address;
         result->name = name;
         result->type = type;
 
-        // Open the I2C connection using sk_i2c_open with bus and speed
-        // Your signature: int sk_i2c_open(int channel, int speed);
-        // So assuming 'speed' param is 0 for default speed
-        result->i2c_handle = sk_i2c_open(bus, 0);
+        //Open i2c connection
+        result->i2c_handle = sk_i2c_open(bus, address, 0);
+
         if (result->i2c_handle < 0)
         {
             LOG(WARNING) << "Error opening ADC device " << name
