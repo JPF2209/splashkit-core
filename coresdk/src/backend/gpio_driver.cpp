@@ -273,87 +273,6 @@ namespace splashkit_lib
         }
     }
 
-    // Open I2C device
-    int sk_i2c_open(int bus, int address, int flags = 0) {
-        if (check_pi()) {
-            int handle = wiringPiI2CSetup(address);
-            if (handle < 0) {
-                LOG(ERROR) << "Failed to open I2C device at address " << address << "\n";
-            }
-            return handle;
-        }
-        return -1;
-    }
-
-    // Read one byte
-    int sk_i2c_read_byte(int handle) {
-        if (check_pi()) {
-            int result = wiringPiI2CRead(handle);
-            if (result < 0) {
-                LOG(ERROR) << "I2C read byte failed\n";
-            }
-            return result;
-        }
-        return -1;
-    }
-
-    // Write one byte
-    int sk_i2c_write_byte(int handle, int data) {
-        if (check_pi()) {
-            int result = wiringPiI2CWrite(handle, data);
-            if (result < 0) {
-                LOG(ERROR) << "I2C write byte failed\n";
-            }
-            return result;
-        }
-        return -1;
-    }
-
-    // Read from register (8-bit)
-    int sk_i2c_read_byte_data(int handle, int reg) {
-        if (check_pi()) {
-            int result = wiringPiI2CReadReg8(handle, reg);
-            if (result < 0) {
-                LOG(ERROR) << "I2C read byte from reg failed\n";
-            }
-            return result;
-        }
-        return -1;
-    }
-
-    // Write to register (8-bit)
-    void sk_i2c_write_byte_data(int handle, int reg, int data) {
-        if (check_pi()) {
-            int result = wiringPiI2CWriteReg8(handle, reg, data);
-            if (result < 0) {
-                LOG(ERROR) << "I2C write byte to reg failed\n";
-            }
-        }
-    }
-
-    // Read from register (16-bit)
-    int sk_i2c_read_word_data(int handle, int reg) {
-        if (check_pi()) {
-            int result = wiringPiI2CReadReg16(handle, reg);
-            if (result < 0) {
-                LOG(ERROR) << "I2C read word from reg failed\n";
-            }
-            return result;
-        }
-        return -1;
-    }
-
-    // Write to register (16-bit)
-    void sk_i2c_write_word_data(int handle, int reg, int data) {
-        if (check_pi()) {
-            int result = wiringPiI2CWriteReg16(handle, reg, data);
-            if (result < 0) {
-                LOG(ERROR) << "I2C write word to reg failed\n";
-            }
-        }
-    }
-
-
     void sk_gpio_clear_bank_1()
     {
         if(check_pi())
@@ -411,6 +330,18 @@ namespace splashkit_lib
         }
     }
 
+    // Open I2C device
+    int sk_i2c_open(int bus, int address, int flags) {
+        if (check_pi()) {
+            int handle = wiringPiI2CSetup(address);
+            if (handle < 0) {
+                LOG(ERROR) << "Failed to open I2C device at address " << address << "\n";
+            }
+            return handle;
+        }
+        return -1;
+    }
+
     int sk_i2c_read_byte(int handle)
     {
         // Assuming check_pi() ensures this is running on a Pi and initialized correctly
@@ -443,44 +374,6 @@ namespace splashkit_lib
         else
         {
             return -1;
-        }
-    }
-
-    int sk_i2c_read_device(int handle, char *buf, int count)
-    {
-        if (check_pi())
-        {
-            for (int i = 0; i < count; ++i)
-            {
-                int byte = wiringPiI2CRead(handle);
-                if (byte < 0)
-                {
-                    LOG(ERROR) << "I2C Read Error at byte " << i << ": " << byte;
-                    return -1;  // Stop on first error
-                }
-                buf[i] = static_cast<char>(byte);
-            }
-            return count;
-        }
-        else
-        {
-            return -1;
-        }
-    }
-
-    void sk_i2c_write_device(int handle, char *buf, int count)
-    {
-        if (check_pi())
-        {
-            for (int i = 0; i < count; ++i)
-            {
-                int result = wiringPiI2CWrite(handle, static_cast<int>(buf[i]));
-                if (result < 0)
-                {
-                    LOG(ERROR) << "I2C Write Error at byte " << i << ": " << result;
-                    return;  // Stop on first error
-                }
-            }
         }
     }
 
@@ -543,290 +436,173 @@ namespace splashkit_lib
     }
 
     #endif
-
-    //WiringPi doesn't have remote gpio functionality so this function sends a ssh command to the RPi
-    std::string sk_send_command(const std::string& ip, const std::string& user, const std::string& gpio_cmd) {
-        
-        // Construct the full plink command using ssh (build it for windows)
-        #ifdef _WIN32
-            std::string command = "C:\\msys64\\usr\\bin\\bash.exe -lc \"ssh " + user + "@" + ip + " '" + gpio_cmd + "'\"";
-        #else
-            std::string command = "ssh " + user + "@" + ip + " '" + gpio_cmd + "'";
-        #endif
-
     
-        std::cout << "Running command: " << command << std::endl;
-        std::array<char, 128> buffer;
-        std::string result;
-
-        //Redefine variables for windows
-        #ifdef _WIN32
-            #define popen _popen
-            #define pclose _pclose
-        #endif
-    
-        // Use popen to capture output
-        std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
-        if (!pipe) {
-            std::cerr << "Failed to run command." << std::endl;
-            return "";
-        }
-
-        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-            result += buffer.data();
-        }
-    
-        return result;
-    }    
-    
-    //Retrieves user input for a specific variable
-    std::string get_user_input(const std::string& message) {
-        while (true) {
-            std::string input;
-            std::cout << message << ": ";
-            std::getline(std::cin, input);
-            //Ensures that the input isn't empty
-            if (!input.empty()) return input;
-            std::cout << "Input cannot be empty. Try again.\n";
-        }
-    }
-    
-    void sk_remote_gpio_init() {
-        //This gets the user input for the RPi address and username since it's unique for every user
-        std::string temp_ip = get_user_input("Provide the Raspberry Pi's IP Address");
-        std::string temp_user = get_user_input("Provide the Raspberry Pi's Username");
-        
-        //Saves these values to the global variables
-        username = temp_user;
-        ip = temp_ip;
-    }
-    
-    // Wrapper functions
-    void sk_remote_gpio_set_mode(int pin, int mode) {
-        // Checks whether the pins are in the correct range
-        if (pin < 0 || pin > 40) 
-        { 
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_GPIO);
-            return;
-        }    
-        // Checks if the mode is valid
-        if (mode < 0 || mode > 7)
-        {
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_MODE);
-            return;
-        }    
-
-        // Construct the correct GPIO mode string
-        std::string mode_str;
-        switch (mode) {
-            case 0: mode_str = "input"; break;
-            case 1: mode_str = "output"; break;
-            default: 
-                return;
-        }
-    
-        // Send the command to set pin mode
-        std::string output = sk_send_command(ip, username, "gpio -g mode " + std::to_string(pin) + " " + mode_str);
-        
-        //Save value to the map specifically for remote values
-        r_pin_modes[pin] = mode;
-    }
-    
-    
-    int sk_remote_gpio_get_mode(int pin) {
-        //Checks whether the pins are in the correct range
-        if (pin < 0 || pin > 40) 
-        { 
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_GPIO);
-            return -1;
-        }
-        int mode = r_pin_modes.count(pin) ? r_pin_modes[pin] : -1;
-        return mode;
-    }
-    
-    void sk_remote_gpio_write(int pin, int value) {
-        //Checks whether the pins are in the correct range
-        if (pin < 0 || pin > 40) 
-        { 
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_GPIO);
-            return;
-        }
-        //Checks whether the value is in the correct range
-        if (value < 0 || value > 1) 
-        { 
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_GPIO);
-            return;
-        }
-        int mode = sk_remote_gpio_get_mode(pin);
-        //Ensures that the mode of the pin is set to high
-        if (mode != 1)
-        {
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_MODE);
-            return;
-        }
-        std::string output = sk_send_command(ip, username, "gpio -g write " + std::to_string(pin) + " " + std::to_string(value));
-    }
-    
-    int sk_remote_gpio_read(int pin) {
-        //Checks whether the pins are in the correct range
-        if (pin < 0 || pin > 40) 
-        { 
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_GPIO);
-            return -1;
-        }
-        std::string output = sk_send_command(ip, username, "gpio -g read " + std::to_string(pin));
-        
-        // Trim output (in case of newline or extra whitespace)
-        output.erase(std::remove_if(output.begin(), output.end(), ::isspace), output.end());
-    
-        //For regular results, return numerical values
-        if (output == "1") return 1;
-        if (output == "0") return 0;
-    
-        LOG(ERROR) << sk_gpio_error_message(PI_BAD_GPIO);
-        return -1; 
-    }
-    
-    
-    void sk_remote_gpio_set_pull_up_down(int pin, int pud) {
-        //Checks whether the pins are in the correct range
-        if (pin < 0 || pin > 40) 
-        { 
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_GPIO);
-            return;
-        }
-        //Checks whether the pud is in the correct range
-        if (pud < 0 || pud > 1) 
-        { 
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_GPIO);
-            return;
-        }
-        //Checks for the pud value and if it's correct, make the final output a string using the value
-        std::string pud_str;
-        switch (pud) {
-            case 0: pud_str = "down"; break;
-            case 1: pud_str = "up"; break;
-            default: 
-                return;
-        }
-        std::string output = sk_send_command(ip, username, "gpio -g mode " + std::to_string(pin) + " " + pud_str);
-    }
-    
-    //This function setpu the pwm for use
-    void setup_pwm(int pin)
+    // Remote GPIO Functions
+    int sk_gpio_init(const std::string &host)
     {
-        std::string output = sk_send_command(ip, username, "gpio -g mode " + std::to_string(pin) + " pwm");
+        int pi = pigpio_start(host, NULL);
+        if (pi < 0) {
+            printf("Failed to connect to pigpio daemon\n");
+            return -1;
+        }
+        return pi;
     }
     
-    void sk_remote_set_pwm_range(int pin, int range) {
-        //Checks whether the pins are in the correct range
-        if (pin < 0 || pin > 40) 
-        { 
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_GPIO);
-            return;
-        }
-        //Checks whether newly set range is a reasonable value
-        if (range <= 25 || range > 4096) 
-        { 
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_DUTYRANGE);
-            return;
-        }
-        int mode = sk_remote_gpio_get_mode(pin);
-        //Checks if the mode is pwm
-        if (mode != GPIO_PWM)
-        {
-            setup_pwm(pin);  
-            //Save value to the map specifically for remote values      
-            r_pin_modes[pin] = GPIO_PWM;
-        }
-        std::string output = sk_send_command(ip, username, "gpio -g pwmr " + std::to_string(range));
-        //Save value to the map specifically for remote values
-        r_pwm_range[pin] = range;
+    connection sk_remote_gpio_init(std::string name, const std::string &host, unsigned short int port)
+    {
+        return open_connection(name, host, port);
     }
-    
-    void sk_remote_set_pwm_frequency(int pin, int frequency) {
-        //Checks whether the pins are in the correct range
-        if (pin < 0 || pin > 40) 
-        { 
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_GPIO);
-            return;
-        }
-        int range = r_pwm_range[pin];
-        //Checks if range exists in the map of know PWM ranges
-        if (range < 25)
-        {
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_DUTYRANGE);
-            return;
-        }
-        double divisor = static_cast<double>(BASE_CLOCK) / (frequency * range);
-        int clock_divisor = static_cast<int>(divisor + 0.5);
-        int mode = sk_remote_gpio_get_mode(pin);
-        //Checks if the mode is pwm
-        if (mode != GPIO_PWM)
-        {
-            setup_pwm(pin);    
-            //Save value to the map specifically for remote values    
-            r_pin_modes[pin] = GPIO_PWM;
-        }
-        // For some function, the output is needed but here, it isn't but two commands need to be run
-        std::string output = sk_send_command(ip, username, "gpio pwm-ms");
-        output = sk_send_command(ip, username, "gpio -g pwmc " + std::to_string(clock_divisor));
-        //Save value to the map specifically for remote values
-        r_pwm_range[pin] = range;
-        r_pin_modes[pin] = 2;
+
+    void sk_remote_gpio_set_mode(connection pi, int pin, int mode)
+    {
+        sk_pigpio_cmd_t set_cmd;
+        set_cmd.cmd_code = GPIO_CMD_SET_MODE;
+        set_cmd.param1 = pin;
+        set_cmd.param2 = mode;
+
+        sk_gpio_send_cmd(pi, set_cmd);
     }
-    
-    void sk_remote_set_pwm_dutycycle(int pin, int dutycycle) {\
-        //Checks whether the pins are in the correct range
-        if (pin < 0 || pin > 40) 
-        { 
-            LOG(ERROR) << sk_gpio_error_message(PI_BAD_GPIO);
-            return;
-        }
-        int range = r_pwm_range[pin];
-        //Checks if range exists in the map of know PWM ranges
-        if (range < 25)
-        {
-            //LOG(ERROR) << sk_gpio_error_message(PI_BAD_DUTYRANGE);
-            return;
-        }
-        int mode = sk_remote_gpio_get_mode(pin);
-        //Checks if the mode is pwm
-        if (mode != GPIO_PWM)
-        {
-            setup_pwm(pin);        
-            //Save value to the map specifically for remote values
-            r_pin_modes[pin] = GPIO_PWM;
-        }
-        std::string output = sk_send_command(ip, username, "gpio -g pwm " + std::to_string(pin) + " " + std::to_string(dutycycle));
-        //Save value to the map specifically for remote values
-        r_pwm_range[pin] = range;
+
+    int sk_remote_gpio_get_mode(connection pi, int pin)
+    {
+        sk_pigpio_cmd_t get_cmd;
+        get_cmd.cmd_code = GPIO_CMD_GET_MODE;
+        get_cmd.param1 = pin;
+
+        return sk_gpio_send_cmd(pi, get_cmd);
     }
-    
-    void sk_remote_clear_bank_1() {
-        // Manually go through each pin and reset it to 0 (LOW)
-        for (int pin = 0; pin <= 40; ++pin)
+
+    void sk_remote_gpio_set_pull_up_down(connection pi, int pin, int pud)
+    {
+        sk_pigpio_cmd_t set_pud_cmd;
+        set_pud_cmd.cmd_code = GPIO_CMD_SET_PUD;
+        set_pud_cmd.param1 = pin;
+        set_pud_cmd.param2 = pud;
+
+        sk_gpio_send_cmd(pi, set_pud_cmd);
+    }
+
+    int sk_remote_gpio_read(connection pi, int pin)
+    {
+        sk_pigpio_cmd_t read_cmd;
+        read_cmd.cmd_code = GPIO_CMD_READ;
+        read_cmd.param1 = pin;
+
+        return sk_gpio_send_cmd(pi, read_cmd);
+    }
+
+    void sk_remote_gpio_write(connection pi, int pin, int value)
+    {
+        sk_pigpio_cmd_t write_cmd;
+        write_cmd.cmd_code = GPIO_CMD_WRITE;
+        write_cmd.param1 = pin;
+        write_cmd.param2 = value;
+
+        sk_gpio_send_cmd(pi, write_cmd);
+    }
+
+    void sk_remote_set_pwm_range(connection pi, int pin, int range)
+    {
+        sk_pigpio_cmd_t set_range_cmd;
+        set_range_cmd.cmd_code = GPIO_CMD_SET_PWM_RANGE;
+        set_range_cmd.param1 = pin;
+        set_range_cmd.param2 = range;
+
+        sk_gpio_send_cmd(pi, set_range_cmd);
+    }
+
+    void sk_remote_set_pwm_frequency(connection pi, int pin, int frequency)
+    {
+        sk_pigpio_cmd_t set_freq_cmd;
+        set_freq_cmd.cmd_code = GPIO_CMD_SET_PWM_FREQ;
+        set_freq_cmd.param1 = pin;
+        set_freq_cmd.param2 = frequency;
+
+        sk_gpio_send_cmd(pi, set_freq_cmd);
+    }
+
+    void sk_remote_set_pwm_dutycycle(connection pi, int pin, int dutycycle)
+    {
+        sk_pigpio_cmd_t set_dutycycle_cmd;
+        set_dutycycle_cmd.cmd_code = GPIO_CMD_SET_PWM_DUTYCYCLE;
+        set_dutycycle_cmd.param1 = pin;
+        set_dutycycle_cmd.param2 = dutycycle;
+
+        sk_gpio_send_cmd(pi, set_dutycycle_cmd);
+    }
+
+    void sk_remote_clear_bank_1(connection pi)
+    {
+        sk_pigpio_cmd_t clear_bank_cmd;
+        clear_bank_cmd.cmd_code = GPIO_CMD_CLEAR_BANK_1;
+        clear_bank_cmd.param1 = PI4B_GPIO_BITMASK;
+
+        sk_gpio_send_cmd(pi, clear_bank_cmd);
+    }
+
+    bool sk_remote_gpio_cleanup(connection pi)
+    {
+        if(!is_connection_open(pi))
         {
-            if (PI4B_GPIO_BITMASK && (1 << pin))
+            LOG(ERROR) << "Remote GPIO: Connection not open.";
+            return false;
+        }
+        LOG(INFO) << "Cleaning Pins on Remote Pi Named: " << pi->name << endl;
+        sk_remote_clear_bank_1(pi);
+        return close_connection(pi);
+    }
+
+    int sk_gpio_send_cmd(connection pi, sk_pigpio_cmd_t &cmd)
+    {
+        if(!is_connection_open(pi))
+        {
+            LOG(ERROR) << sk_gpio_error_message(PI_PIGIF_BAD_CONNECT); 
+            return PI_PIGIF_BAD_CONNECT;
+        }
+
+        if(pi->protocol == TCP)
+        {
+            int num_send_bytes = sizeof(cmd);
+
+            std::vector<char> buffer(num_send_bytes);
+            memcpy(buffer.data(), &cmd, num_send_bytes);
+
+            if(sk_send_bytes(&pi->socket, buffer.data(), num_send_bytes)) 
             {
-                int currentPin = pin;
-                r_pin_modes[pin] = GPIO_LOW;
-                r_pwm_range[pin] = GPIO_LOW;
+                int num_bytes_recv = sk_read_bytes(&pi->socket, buffer.data(), num_send_bytes); 
+                if(num_bytes_recv == num_send_bytes) 
+                {
+                    sk_pigpio_cmd_t resp;
+                    memcpy(&resp, buffer.data(), num_send_bytes);
+                    
+                    // We cast it back to a signed type so we can get the negative error codes.
+                    int32_t result = static_cast<int32_t>(resp.result);
+
+                    if (result < 0)
+                    {
+                        LOG(ERROR) << sk_gpio_error_message(result);
+                    }
+
+                    return result;
+                }
+                else
+                {
+                    LOG(ERROR) << sk_gpio_error_message(PI_PIGIF_BAD_RECV);
+                    return PI_PIGIF_BAD_RECV;
+                }
+            }
+            else
+            {
+                LOG(ERROR) << sk_gpio_error_message(PI_PIGIF_BAD_SEND);
+                return PI_PIGIF_BAD_SEND;
             }
         }
+        else
+        {
+            LOG(ERROR) << "Remote GPIO: Connection has UDP Protocol";
+            return -1;
+        }
     }
-
-    //A cleanup function is useful for remote GPIO since it runs on ssh and not WiringPi
-    bool sk_remote_gpio_cleanup() {
-        std::cout << "Cleaning up remote GPIO...\n";
-        //Clear out dictionary values
-        sk_remote_clear_bank_1();
-        //Reset username and ip to empty
-        username = "";
-        ip = "";
-        return true;
-    }
-    
     
     std::string sk_gpio_error_message(int error_code)
     {
