@@ -119,6 +119,6 @@ namespace splashkit_lib
      */
     void close_all_adc();
 }
-
+#endif /* raspi_adc_hpp */
 #endif /* RASPI_ADC_HPP */
 #endif

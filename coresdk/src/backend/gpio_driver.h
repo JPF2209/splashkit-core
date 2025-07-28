@@ -207,8 +207,8 @@ namespace splashkit_lib
     int sk_spi_transfer(int handle, char *buf, int count);
     
     // I2C Functions (WiringPi compatible)
-    int sk_i2c_open(int bus, int address, int flags = 0);   // flags unused in WiringPi
-    void sk_i2c_close(int handle);                          // optional, as WiringPi doesn?t have close
+    int sk_i2c_open(int bus, int address, int flags);   // flags unused in WiringPi
+    int sk_i2c_close(int handle);                          // optional, as WiringPi doesn?t have close
     int sk_i2c_read_byte(int handle);
     int sk_i2c_write_byte(int handle, int data);
 

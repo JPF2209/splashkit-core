@@ -19,8 +19,6 @@
 #include <wiringPiSPI.h>
 #include <wiringPiI2C.h>
 
-#define LOG(x) std::cerr
-
 #endif
 
 #ifdef _WIN32
@@ -331,6 +329,32 @@ namespace splashkit_lib
         }
     }
 
+    // This function uses a combined buffer now called buf
+    int sk_spi_transfer(int handle, char *buf, int count)
+    {
+        if (check_pi())
+        {
+            // If handle is -1, it doesn't exist
+            if (handle == -1)
+            {
+                return -1;
+            }
+            unsigned char *u_buf = (unsigned char *)buf;
+            int channel = handle_channel[handle];
+            // Checks whether the channel is in the correct range or if it's not 0
+            if (channel >= 0 || channel < 2)
+            {
+                return -1;
+            }
+            int val = wiringPiSPIDataRW(channel, u_buf, count);
+            return val;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+
     // Open I2C device
     int sk_i2c_open(int bus, int address, int flags) {
         if (check_pi()) {
@@ -341,6 +365,23 @@ namespace splashkit_lib
             return handle;
         }
         return -1;
+    }
+
+    int sk_i2c_close(int handle) {
+        if (check_pi()) {
+            if (handle >= 0) {
+                if (close(handle) == 0) {
+                    return 0; // Success
+                } else {
+                    LOG(ERROR) << "Failed to close I2C handle " << handle;
+                    return -1; // Error in close
+                }
+            } else {
+                LOG(WARNING) << "Invalid I2C handle: " << handle;
+                return -1;
+            }
+        }
+        return -1; // Not running on Pi
     }
 
     int sk_i2c_read_byte(int handle)
@@ -428,13 +469,14 @@ namespace splashkit_lib
     {
         if (check_pi())
         {
-            int result = ::i2c_write_word_data(pi, handle, reg, data);
+            int result = wiringPiI2CWriteReg16(handle, reg, data);
             if (result < 0)
             {
                 LOG(ERROR) << sk_gpio_error_message(result);
             }
         }
     }
+
 
     #endif
     
