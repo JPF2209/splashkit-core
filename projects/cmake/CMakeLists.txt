@@ -115,6 +115,18 @@ else()
                    -ldl \
                    -lstdc++fs")
 endif()
+# Define for host computer 
+# Find pigpio libraries unconditionally if they exist
+find_path(PIGPIOD_INCLUDE_DIR NAMES pigpiod_if2.h PATHS "/usr/include")
+find_library(PIGPIOD_IF2_LIB NAMES pigpiod_if2 HINTS "/usr/lib")
+find_library(PIGPIO_LIB NAMES pigpio HINTS "/usr/lib")
+
+set(PIGPIO_LIBS "")
+if (PIGPIOD_IF2_LIB AND PIGPIO_LIB)
+    message("-- Linking with pigpiod_if2 and pigpio")
+    set(PIGPIO_LIBS ${PIGPIOD_IF2_LIB} ${PIGPIO_LIB})
+endif()
+
 
 # --- New Raspberry Pi detection method (active on Linux only) ---
 # We now detect Raspberry Pi by checking for specific device model and CPU info.
@@ -151,6 +163,7 @@ if (NOT APPLE AND NOT MSYS)
             include_directories(${PIGPIOD_INCLUDE_DIR})
             add_definitions(-DRASPBERRY_PI)
             # Override LIB_FLAGS for Raspberry Pi to include pigpiod_if2
+            set(PIGPIO_LIBS ${PIGPIOD_IF2_LIB} ${PIGPIO_LIB})
             set(LIB_FLAGS "-lSDL2 \
                            -lSDL2_mixer \
                            -lSDL2_ttf \
@@ -238,8 +251,8 @@ add_definitions(-DELPP_THREAD_SAFE)
 #### END SETUP ####
 #### SplashKitBackend STATIC LIBRARY ####
 add_library(SplashKitBackend STATIC ${SOURCE_FILES} ${INCLUDE_FILES})
-target_link_libraries(SplashKitBackend ${LIB_FLAGS})
 
+target_link_libraries(SplashKitBackend ${LIB_FLAGS})
 if (MSYS)
     set_target_properties(SplashKitBackend PROPERTIES PREFIX "")
     target_include_directories(SplashKitBackend PUBLIC ${SDL2_INCLUDE_DIRS})
@@ -299,12 +312,18 @@ set_property(TARGET skunit_tests PROPERTY POSITION_INDEPENDENT_CODE FALSE)
 # target_link_options(skunit_tests PUBLIC "LINKER:-U,___darwin_check_fd_set_overflow")
 target_link_libraries(skunit_tests SplashKitBackend)
 target_link_libraries(skunit_tests ${LIB_FLAGS})
-
 set_target_properties(skunit_tests
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${SK_BIN}
         )
 #### END sktest EXECUTABLE ####
+
+if(PIGPIO_LIBS)
+    target_link_libraries(SplashKitBackend ${PIGPIO_LIBS})
+    target_link_libraries(sktest ${PIGPIO_LIBS})
+    target_link_libraries(skunit_tests ${PIGPIO_LIBS})
+endif()
+
 
 #This targets library after sktest is dealt with
 # Find the WiringPi headers.

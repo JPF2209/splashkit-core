@@ -12,6 +12,7 @@
 
 #include <unistd.h>
 #include <cstring>
+#include "pigpiod_if2.h"
 #ifdef RASPBERRY_PI
 #include <wiringPi.h>
 #include <unordered_map>
@@ -440,7 +441,7 @@ namespace splashkit_lib
     // Remote GPIO Functions
     int sk_gpio_init(const std::string &host)
     {
-        int pi = pigpio_start(host, NULL);
+        int pi = pigpio_start(host.c_str(), NULL);
         if (pi < 0) {
             printf("Failed to connect to pigpio daemon\n");
             return -1;
@@ -623,11 +624,11 @@ namespace splashkit_lib
                 return "Invalid PWM duty cycle. Duty cycle must be between 0 and the range value (default 255).";
             case PI_BAD_DUTYRANGE:
                 return "Invalid PWM range. Range must be between 25 and 40000.";
-            case PIGIF_ERR_BAD_SEND:
+            case PI_PIGIF_BAD_SEND:
                 return "Failed to send command to remote GPIO daemon (pigpiod).";
-            case PIGIF_ERR_BAD_RECV:
+            case PI_PIGIF_BAD_RECV:
                 return "Failed to receive response from remote GPIO daemon (pigpiod).";
-            case PIGIF_ERR_BAD_CONNECT:
+            case PI_PIGIF_BAD_CONNECT:
                 return "Failed to connect to remote GPIO daemon (pigpiod).";
             default:
                 return "Unknown error code " + std::to_string(error_code);

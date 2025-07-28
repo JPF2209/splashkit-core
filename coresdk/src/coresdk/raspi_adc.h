@@ -121,3 +121,4 @@ namespace splashkit_lib
 }
 
 #endif /* RASPI_ADC_HPP */
+#endif
