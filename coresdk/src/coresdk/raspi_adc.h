@@ -121,4 +121,3 @@ namespace splashkit_lib
 }
 #endif /* raspi_adc_hpp */
 #endif /* RASPI_ADC_HPP */
-#endif
