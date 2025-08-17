@@ -61,6 +61,7 @@ void setup_tests()
     add_test("GPIO Tests", run_gpio_tests);
     add_test("ADC Tests", run_gpio_adc_tests);
     add_test("Remote GPIO Tests", run_remote_gpio_tests);
+    add_test("Remote ADC Tests", run_remote_gpio_adc_tests);
     add_test("GPIO Tests - SPI", run_gpio_spi_tests);
     add_test("UI Tests", run_ui_test);
    

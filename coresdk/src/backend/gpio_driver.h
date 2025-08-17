@@ -219,7 +219,6 @@ namespace splashkit_lib
     void sk_i2c_write_word_data(int handle, int reg, int data);
 
     #endif
-    int sk_gpio_init(const std::string &host);
     connection sk_remote_gpio_init(std::string name, const std::string &host, unsigned short int port);
     void sk_remote_gpio_set_mode(connection pi, int pin, int mode);
     int sk_remote_gpio_get_mode(connection pi, int pin);
@@ -229,6 +228,16 @@ namespace splashkit_lib
     void sk_remote_set_pwm_range(connection pi, int pin, int range);
     void sk_remote_set_pwm_frequency(connection pi, int pin, int frequency);
     void sk_remote_set_pwm_dutycycle(connection pi, int pin, int dutycycle);
+
+    void sk_remote_i2c_open(connection pi, int bus, int address, int flags);
+    int sk_remote_i2c_close(connection pi, int handle);
+    int sk_remote_i2c_read_byte(connection pi, int handle);
+    int sk_remote_i2c_write_byte(connection pi, int handle, int data);
+    int sk_remote_i2c_read_byte_data(connection pi, int handle, int reg);
+    void sk_remote_i2c_write_byte_data(connection pi, int handle, int reg, int data);
+    int sk_remote_i2c_read_word_data(connection pi, int handle, int reg);
+    void sk_remote_i2c_write_word_data(connection pi, int handle, int reg, int data);
+
     void sk_remote_clear_bank_1(connection pi);
     bool sk_remote_gpio_cleanup(connection pi);
 
