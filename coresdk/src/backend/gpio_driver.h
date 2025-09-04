@@ -229,7 +229,7 @@ namespace splashkit_lib
     void sk_remote_set_pwm_frequency(connection pi, int pin, int frequency);
     void sk_remote_set_pwm_dutycycle(connection pi, int pin, int dutycycle);
 
-    void sk_remote_i2c_open(connection pi, int bus, int address, int flags);
+    int sk_remote_i2c_open(connection pi, int bus, int address, int flags);
     int sk_remote_i2c_close(connection pi, int handle);
     int sk_remote_i2c_read_byte(connection pi, int handle);
     int sk_remote_i2c_write_byte(connection pi, int handle, int data);

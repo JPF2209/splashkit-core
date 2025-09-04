@@ -1,9 +1,8 @@
-//
-//  raspi_adc.cpp
-//  splashkit
+// raspi_adc.cpp
+// splashkit
 //
 // This file is part of the SplashKit Core Library.
-// Copyright (Â©) 2024 Aditya Parmar. All Rights Reserved.
+// Copyright (©) 2024 Aditya Parmar. All Rights Reserved.
 //
 
 #include "raspi_adc.h"
@@ -215,7 +214,7 @@ namespace splashkit_lib
             if (channel < 0 || channel > 3)
             {
                 LOG(WARNING) << "Invalid ADC channel: " << channel
-                            << " for device " << dev->name << " (PCF8591 supports 0-3)";
+                             << " for device " << dev->name << " (PCF8591 supports 0-3)";
                 return -1;
             }
             command = channel & 0x03;
@@ -230,7 +229,7 @@ namespace splashkit_lib
         if (sk_i2c_write_byte(dev->i2c_handle, command) < 0)
         {
             LOG(WARNING) << "Failed to write ADC channel command for channel " << channel
-                        << " on device " << dev->name;
+                         << " on device " << dev->name;
             return -1;
         }
 
@@ -242,7 +241,7 @@ namespace splashkit_lib
         if (value < 0)
         {
             LOG(WARNING) << "Error reading ADC channel " << channel
-                        << " from device " << dev->name;
+                         << " from device " << dev->name;
         }
 
         return value;
@@ -265,7 +264,7 @@ namespace splashkit_lib
         if (channel < ADC_PIN_0 || channel > ADC_PIN_7)
         {
             LOG(WARNING) << "Invalid ADC channel: " << channel
-                        << " for device " << adc->name << " (ADS7830 supports 0-7)";
+                         << " for device " << adc->name << " (ADS7830 supports 0-7)";
             return -1;
         }
 
@@ -371,7 +370,7 @@ namespace splashkit_lib
     }
 
     remote_adc_device remote_adc_device_named(const std::string& name) {
-        if (has_adc_device(name)) {
+        if (remote_has_adc_device(name)) {
             return remote_adc_devices[name];
         }
         return nullptr;
@@ -393,12 +392,21 @@ namespace splashkit_lib
         result->name = name;
         result->type = type;
 
-        sk_remote_i2c_open(result->pi, result->bus, result->address, 0);
+        // **FIXED**: Correctly assign the handle from sk_remote_i2c_open
+        result->i2c_handle = sk_remote_i2c_open(result->pi, result->bus, result->address, 0);
+
+        // **FIXED**: Check if the I2C open call was successful before proceeding
+        if (result->i2c_handle < 0) {
+            LOG(WARNING) << "Error opening remote ADC device " << name;
+            delete result;
+            return nullptr;
+        }
 
         int test_result = sk_remote_i2c_write_byte(result->pi, result->i2c_handle, 0x84);
         if (test_result < 0) {
             LOG(WARNING) << "Failed to communicate with ADC device " << name << " (write test byte failed)\n";
             sk_remote_i2c_close(result->pi, result->i2c_handle);
+            delete result;
             return nullptr;
         }
 
@@ -425,7 +433,7 @@ namespace splashkit_lib
     {
         if (remote_has_adc_device(name))
         {
-            LOG(WARNING) <<  "ADC device " << name << " already loaded.";
+            LOG(WARNING) << "ADC device " << name << " already loaded.";
             return remote_adc_device_named(name);
         }
         return remote_load_adc_device(pi, name, bus, address, type);
@@ -435,7 +443,7 @@ namespace splashkit_lib
     {
         if (dev == nullptr)
         {
-            LOG(WARNING) <<  "Invalid ADC device.";
+            LOG(WARNING) << "Invalid ADC device.";
             return -1;
         }
 
@@ -446,13 +454,13 @@ namespace splashkit_lib
             command = channel;
             break;
         default:
-            LOG(WARNING) <<  "Unsupported ADC type for device " << dev->name;
+            LOG(WARNING) << "Unsupported ADC type for device " << dev->name;
             return -1;
         }
 
         if (sk_remote_i2c_write_byte(dev->pi, dev->i2c_handle, command) < 0)
         {
-            LOG(WARNING) <<  "Failed to write ADC channel command for channel " << std::to_string(channel) << " on device " << dev->name;
+            LOG(WARNING) << "Failed to write ADC channel command for channel " << std::to_string(channel) << " on device " << dev->name;
             return -1;
         }
 
@@ -461,7 +469,7 @@ namespace splashkit_lib
         int value = sk_remote_i2c_read_byte(dev->pi, dev->i2c_handle);
         if (value < 0)
         {
-            LOG(WARNING) <<  "Error reading ADC channel " << std::to_string(channel) << " from device " << dev->name;
+            LOG(WARNING) << "Error reading ADC channel " << std::to_string(channel) << " from device " << dev->name;
         }
         return value;
     }
@@ -476,7 +484,7 @@ namespace splashkit_lib
 
         if (channel < ADC_PIN_0 || channel > ADC_PIN_7)
         {
-            LOG(WARNING) <<  "Invalid ADC channel: " << std::to_string(channel) << " for device " << adc->name << " (ADS7830 supports 0-7)";
+            LOG(WARNING) << "Invalid ADC channel: " << std::to_string(channel) << " for device " << adc->name << " (ADS7830 supports 0-7)";
             return -1;
         }
 

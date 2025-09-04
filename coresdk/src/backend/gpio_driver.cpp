@@ -32,10 +32,10 @@
 
 using namespace std;
 // Use https://abyz.me.uk/rpi/pigpio/pdif2.html for local command reference
-//   Archive Link: https://web.archive.org/web/20240423160241/https://abyz.me.uk/rpi/pigpio/pdif2.html
+//    Archive Link: https://web.archive.org/web/20240423160241/https://abyz.me.uk/rpi/pigpio/pdif2.html
 //
 // Use https://abyz.me.uk/rpi/pigpio/sif.html for remote command reference
-//   Archive Link: https://web.archive.org/web/20240423160319/https://abyz.me.uk/rpi/pigpio/sif.html
+//    Archive Link: https://web.archive.org/web/20240423160319/https://abyz.me.uk/rpi/pigpio/sif.html
 namespace splashkit_lib
 {
     //Add map to track items for remote gpio
@@ -574,7 +574,8 @@ namespace splashkit_lib
         sk_gpio_send_cmd(pi, set_dutycycle_cmd);
     }
 
-    void sk_remote_i2c_open(connection pi, int bus, int address, int flags)
+    // **FIXED**: The return type is now int to return the handle.
+    int sk_remote_i2c_open(connection pi, int bus, int address, int flags)
     {
         sk_pigpio_cmd_t i2c_open_cmd;
         i2c_open_cmd.cmd_code = GPIO_I2C_CMD_OPEN;
@@ -582,7 +583,8 @@ namespace splashkit_lib
         i2c_open_cmd.param2 = address;
         i2c_open_cmd.param3 = flags;
 
-        sk_gpio_send_cmd(pi, i2c_open_cmd);
+        // **FIXED**: Return the result of the command, which is the I2C handle.
+        return sk_gpio_send_cmd(pi, i2c_open_cmd);
     }
 
     int sk_remote_i2c_close(connection pi, int handle) {
